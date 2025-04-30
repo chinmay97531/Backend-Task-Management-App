@@ -23,12 +23,8 @@ npm install
 ```
 
 
-### ⚙️ 3. Create a config.js File
+### ⚙️ 3. Modify the code in config.js File
 
-```bash
-touch config.js
-```
-Add the following code to it:
 export const MONGODBURL = "YOUR MONGODB URL";
 export const JWT_SECRET = "YOUR JWT SECRET";
 
