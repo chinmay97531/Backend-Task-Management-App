@@ -1,7 +1,7 @@
 import express from "express";
 import { UserModel, TaskModel } from "../db.js";
 import { z } from "zod";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { userMiddleware } from "../middleware/usermiddleware.js";
 import mongoose from "mongoose";
