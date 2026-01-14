@@ -7,3 +7,4 @@ if (!MONGODBURL) {
 
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is not set. Please define it in your .env or hosting environment.");
+}
