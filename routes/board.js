@@ -330,6 +330,7 @@ app.post("/filter", userMiddleware, async (req, res) => {
       case "groupByStatus":
         tasks = await TaskModel.aggregate([
           { $match: { createdBy: objectId } },
+          { $sort: { dueDate: 1 } },
           {
             $facet: {
               DO: [{ $match: { status: "DO" } }],
@@ -370,6 +371,7 @@ app.post("/filter", userMiddleware, async (req, res) => {
       case "sortedGrouped":
         tasks = await TaskModel.aggregate([
           { $match: { createdBy: objectId } },
+          { $sort: { dueDate: 1 } },
           {
             $facet: {
               DONE: [{ $match: { status: "DONE" } }],
@@ -377,7 +379,6 @@ app.post("/filter", userMiddleware, async (req, res) => {
               DO: [{ $match: { status: "DO" } }]
             }
           },
-          { $sort: { dueDate: -1 } },
           {
             $project: {
               tasks: {
@@ -398,7 +399,6 @@ app.post("/filter", userMiddleware, async (req, res) => {
         return res.status(400).json({ message: "Invalid filter type" });
     }
 
-    console.log("Filtered tasks:", tasks);
     res.status(200).json({ message: "Tasks retrieved successfully", tasks });
   } catch (err) {
     console.error(err);
