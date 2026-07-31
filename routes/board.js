@@ -76,6 +76,12 @@ app.post("/signin", async (req, res) => {
     return;
   }
 
+  if (!user.password) {
+    return res.status(403).json({
+      message: "This account uses Google sign-in. Please continue with Google.",
+    });
+  }
+
   const passwordMatch = await bcrypt.compare(password, user.password);
 
   if (passwordMatch) {

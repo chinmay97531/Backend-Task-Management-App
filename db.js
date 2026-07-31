@@ -6,7 +6,8 @@ mongoose.connect(MONGODBURL);
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+  password: { type: String, required: false },
+  googleId: { type: String, unique: true, sparse: true },
 });
 
 const taskSchema = new mongoose.Schema({
@@ -29,7 +30,6 @@ const taskSchema = new mongoose.Schema({
   },
   createdAt: { type: Date, default: Date.now },
 });
-
 
 const TaskModel = model("Task", taskSchema);
 const UserModel = model("User", userSchema);
