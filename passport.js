@@ -27,6 +27,7 @@ if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
             profile.displayName ||
             profile.name?.givenName ||
             (email ? email.split("@")[0] : "Google User");
+          const avatar = profile.photos?.[0]?.value || "";
 
           if (!email) {
             return done(new Error("Google account did not provide an email"));
@@ -39,14 +40,28 @@ if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
             if (user) {
               user.googleId = googleId;
               if (!user.username) user.username = username;
+              if (avatar) user.avatar = avatar;
               await user.save();
             } else {
               user = await UserModel.create({
                 username,
                 email,
                 googleId,
+                avatar: avatar || undefined,
               });
             }
+          } else {
+            // Refresh name/photo on each Google login
+            let dirty = false;
+            if (username && user.username !== username) {
+              user.username = username;
+              dirty = true;
+            }
+            if (avatar && user.avatar !== avatar) {
+              user.avatar = avatar;
+              dirty = true;
+            }
+            if (dirty) await user.save();
           }
 
           return done(null, user);

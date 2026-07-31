@@ -101,6 +101,28 @@ app.post("/signin", async (req, res) => {
   }
 });
 
+app.get("/me", userMiddleware, async (req, res) => {
+  try {
+    const user = await UserModel.findById(req.userId).select(
+      "username email avatar googleId"
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.json({
+      username: user.username,
+      email: user.email,
+      avatar: user.avatar || null,
+      authProvider: user.googleId ? "google" : "email",
+    });
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+    return res.status(500).json({ message: "Could not load profile" });
+  }
+});
+
 app.post("/CreateTask", userMiddleware, async (req, res) => {
   try {
     const { name, description, label, dueDate, status, assignedTo } = req.body;
