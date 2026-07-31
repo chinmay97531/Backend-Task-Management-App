@@ -349,11 +349,19 @@ app.post("/filter", userMiddleware, async (req, res) => {
 
       case "deleteCompleted":
         await TaskModel.deleteMany({ createdBy: uid, status: "DONE" });
-        return res.status(200).json({ message: "Completed tasks deleted" });
+        tasks = await TaskModel.find({ createdBy: uid }).sort({ createdAt: -1 });
+        return res.status(200).json({
+          message: "Completed tasks deleted",
+          tasks,
+        });
 
       case "deletePastDue":
         await TaskModel.deleteMany({ createdBy: uid, dueDate: { $lt: now } });
-        return res.status(200).json({ message: "Past due tasks deleted" });
+        tasks = await TaskModel.find({ createdBy: uid }).sort({ createdAt: -1 });
+        return res.status(200).json({
+          message: "Past due tasks deleted",
+          tasks,
+        });
 
       case "groupByStatus":
         tasks = await TaskModel.aggregate([
