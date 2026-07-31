@@ -14,6 +14,8 @@ router.get("/google", (req, res, next) => {
   return passport.authenticate("google", {
     scope: ["profile", "email"],
     session: false,
+    // Always show the Google account chooser so a different Gmail can be used
+    prompt: "select_account",
   })(req, res, next);
 });
 
@@ -30,6 +32,10 @@ router.get(
   },
   (req, res) => {
     try {
+      if (!req.user?._id) {
+        console.error("Google OAuth callback: no user on request");
+        return res.redirect(`${FRONTEND_URL}/?error=google`);
+      }
       const token = jwt.sign({ id: req.user._id.toString() }, JWT_SECRET);
       return res.redirect(`${FRONTEND_URL}/home?token=${encodeURIComponent(token)}`);
     } catch (error) {
