@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node scripts/repair-iconv.js && nodemon index.js",
-    "start": "node scripts/repair-iconv.js && node index.js",
-    "postinstall": "node scripts/repair-iconv.js",
-    "render-build": "rm -rf node_modules && npm ci --omit=dev && node scripts/repair-iconv.js && node scripts/verify-iconv.js"
+    "dev": "node scripts/ensure-deps.js && nodemon index.js",
+    "start": "node scripts/ensure-deps.js && node index.js",
+    "postinstall": "node scripts/ensure-deps.js",
+    "render-build": "rm -rf node_modules && npm ci --omit=dev && node scripts/ensure-deps.js"
   },
   "engines": {
     "node": "20.x"
