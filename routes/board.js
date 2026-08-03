@@ -266,6 +266,57 @@ app.post("/changeStatus/:taskId", userMiddleware, async (req, res) => {
   }
 });
 
+app.put("/updateTask/:taskId", userMiddleware, async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { name, description, label, dueDate, status, important } = req.body;
+
+    if (!name?.trim() || !description?.trim() || !label?.trim() || !dueDate || !status) {
+      return res.status(400).json({ message: "Please fill all required fields." });
+    }
+
+    if (!["DO", "DOING", "DONE"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    const parsedDue = new Date(dueDate);
+    if (Number.isNaN(parsedDue.getTime())) {
+      return res.status(400).json({ message: "Invalid due date." });
+    }
+
+    const task = await TaskModel.findOne({ _id: taskId, createdBy: req.userId });
+    if (!task) return res.status(404).json({ message: "Task not found" });
+
+    task.title = name.trim();
+    task.description = description.trim();
+    task.label = label.trim();
+    task.dueDate = parsedDue;
+    task.status = status;
+    if (typeof important === "boolean") {
+      task.important = important;
+    }
+
+    await task.save();
+
+    res.status(200).json({
+      message: "Task updated successfully",
+      task: {
+        _id: task._id,
+        title: task.title,
+        description: task.description,
+        label: task.label,
+        dueDate: task.dueDate,
+        status: task.status,
+        important: task.important,
+        assignedTo: task.assignedTo,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message || "Could not update task." });
+  }
+});
+
 app.put("/:id/add-assignee", userMiddleware, async (req, res) => {
   try {
     const taskId = req.params.id;

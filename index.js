@@ -5,6 +5,7 @@ import session from "express-session";
 import passport from "./passport.js";
 import boardRouter from "./routes/board.js";
 import authRouter from "./routes/auth.js";
+import aiRouter from "./routes/ai.js";
 import { FRONTEND_URL, SESSION_SECRET } from "./config.js";
 
 const app = express();
@@ -42,6 +43,7 @@ app.use(passport.session());
 
 app.use("/auth", authRouter);
 app.use("/api/v1/boards", boardRouter);
+app.use("/api/v1/boards/ai", aiRouter);
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server is running on port ${PORT}`);

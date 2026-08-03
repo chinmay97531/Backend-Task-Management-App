@@ -9,6 +9,7 @@ export const GOOGLE_CLIENT_SECRET =
 export const GOOGLE_CALLBACK_URL =
   process.env.GOOGLE_CALLBACK_URL ||
   "http://localhost:3000/auth/google/callback";
+export const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 if (!MONGODBURL) {
   throw new Error(
