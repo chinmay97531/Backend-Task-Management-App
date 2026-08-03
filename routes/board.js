@@ -10,6 +10,55 @@ import { JWT_SECRET } from "../config.js";
 
 const app = express();
 
+async function attachAssigneeAvatars(tasks) {
+  const list = Array.isArray(tasks) ? tasks : [];
+  const emails = [
+    ...new Set(
+      list.flatMap((task) =>
+        (task.assignedTo || [])
+          .map((a) => a?.email?.trim()?.toLowerCase())
+          .filter(Boolean)
+      )
+    ),
+  ];
+
+  if (emails.length === 0) {
+    return list.map((task) => {
+      const plain = typeof task.toObject === "function" ? task.toObject() : task;
+      return {
+        ...plain,
+        assignedTo: (plain.assignedTo || []).map((a) => ({
+          name: a.name,
+          email: a.email,
+          avatar: a.avatar || null,
+        })),
+      };
+    });
+  }
+
+  const users = await UserModel.find({ email: { $in: emails } })
+    .select("email avatar")
+    .lean();
+  const avatarByEmail = {};
+  for (const user of users) {
+    if (user.email && user.avatar) {
+      avatarByEmail[user.email.toLowerCase()] = user.avatar;
+    }
+  }
+
+  return list.map((task) => {
+    const plain = typeof task.toObject === "function" ? task.toObject() : task;
+    return {
+      ...plain,
+      assignedTo: (plain.assignedTo || []).map((a) => ({
+        name: a.name,
+        email: a.email,
+        avatar: avatarByEmail[a.email?.trim()?.toLowerCase()] || a.avatar || null,
+      })),
+    };
+  });
+}
+
 app.post("/signup", async (req, res) => {
   try {
     const requiredBody = z.object({
@@ -174,23 +223,13 @@ app.post("/GetTask", userMiddleware, async (req, res) => {
       return res.status(404).json({ message: "No tasks found" });
     }
 
-    const tasksWithId = tasks.map(task => ({
-      _id: task._id,
-      title: task.title,
-      description: task.description,
-      label: task.label,
-      dueDate: task.dueDate,
-      status: task.status,
-      important: task.important,
-      assignedTo: task.assignedTo,
-      createdBy: task.createdBy,
-      createdAt: task.createdAt,
-    }));
+    const tasksWithAvatars = await attachAssigneeAvatars(tasks);
 
-
-    res
-      .status(200)
-      .json({ message: "Tasks retrieved successfully", uid, tasks: tasksWithId });
+    res.status(200).json({
+      message: "Tasks retrieved successfully",
+      uid,
+      tasks: tasksWithAvatars,
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: err.message });
@@ -486,7 +525,8 @@ app.post("/filter", userMiddleware, async (req, res) => {
         return res.status(400).json({ message: "Invalid filter type" });
     }
 
-    res.status(200).json({ message: "Tasks retrieved successfully", tasks });
+    const enriched = await attachAssigneeAvatars(tasks || []);
+    res.status(200).json({ message: "Tasks retrieved successfully", tasks: enriched });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: err.message });
