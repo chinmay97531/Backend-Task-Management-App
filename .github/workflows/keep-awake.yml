@@ -1,0 +1,40 @@
+name: Keep Render Awake
+
+# Pings /health so the free Render service does not sleep from inactivity.
+# Runs about every 10 minutes + can be triggered manually.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Hit backend health endpoint
+        env:
+          HEALTH_URL: ${{ secrets.BACKEND_HEALTH_URL }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${HEALTH_URL:-}" ]; then
+            echo "::error::Missing GitHub secret BACKEND_HEALTH_URL"
+            echo "Add it under Settings → Secrets and variables → Actions"
+            echo "Example value: https://your-service.onrender.com/health"
+            exit 1
+          fi
+
+          echo "Pinging ${HEALTH_URL}"
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS --max-time 60 "${HEALTH_URL}"; then
+              echo
+              echo "OK (attempt ${attempt})"
+              exit 0
+            fi
+            echo "Attempt ${attempt} failed; retrying in 15s..."
+            sleep 15
+          done
+
+          echo "::error::Health check failed after retries"
+          exit 1
