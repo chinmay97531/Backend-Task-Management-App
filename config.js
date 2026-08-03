@@ -9,7 +9,17 @@ export const GOOGLE_CLIENT_SECRET =
 export const GOOGLE_CALLBACK_URL =
   process.env.GOOGLE_CALLBACK_URL ||
   "http://localhost:3000/auth/google/callback";
-export const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+export function getGeminiApiKey() {
+  return (
+    process.env.GEMINI_API_KEY?.trim() ||
+    process.env.GOOGLE_AI_API_KEY?.trim() ||
+    ""
+  );
+}
+
+/** Snapshot at boot; prefer getGeminiApiKey() at runtime. */
+export const GEMINI_API_KEY = getGeminiApiKey();
 
 if (!MONGODBURL) {
   throw new Error(

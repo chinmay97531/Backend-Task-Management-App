@@ -1,5 +1,25 @@
-import OpenAI from "openai";
-import { OPENAI_API_KEY } from "../config.js";
+import { GoogleGenAI } from "@google/genai";
+import { getGeminiApiKey } from "../config.js";
+
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+
+function parseJsonLoose(text) {
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(text.slice(start, end + 1));
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  }
+}
 
 const REQUIRED_FIELDS = [
   "title",
@@ -233,41 +253,44 @@ export async function runTaskAgent({
   history = [],
   user = null,
 }) {
-  if (!OPENAI_API_KEY) {
-    const err = new Error("OPENAI_API_KEY is not configured on the server.");
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    const err = new Error("GEMINI_API_KEY is not configured on the server.");
     err.status = 503;
     throw err;
   }
 
-  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+  const ai = new GoogleGenAI({ apiKey });
   const currentDraft = draft ? mergeDraft(emptyDraft(), draft) : emptyDraft();
   const todayIso = new Date().toISOString().slice(0, 10);
   const userAskedAutofill = wantsAutofill(message);
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    temperature: 0.3,
-    response_format: { type: "json_object" },
-    messages: [
-      { role: "system", content: buildSystemPrompt(todayIso, user) },
-      {
-        role: "system",
-        content: `Current draft JSON:\n${JSON.stringify(currentDraft, null, 2)}\nMissing fields right now: ${JSON.stringify(getMissingFields(currentDraft))}\nUser appears to request autofill: ${userAskedAutofill}`,
-      },
-      ...history.slice(-8).map((m) => ({
-        role: m.role === "assistant" ? "assistant" : "user",
-        content: m.content,
-      })),
-      { role: "user", content: message },
-    ],
+  const contents = [
+    ...history.slice(-8).map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    })),
+    {
+      role: "user",
+      parts: [
+        {
+          text: `Current draft JSON:\n${JSON.stringify(currentDraft, null, 2)}\nMissing fields right now: ${JSON.stringify(getMissingFields(currentDraft))}\nUser appears to request autofill: ${userAskedAutofill}\n\nUser message:\n${message}`,
+        },
+      ],
+    },
+  ];
+
+  const response = await ai.models.generateContent({
+    model: GEMINI_MODEL,
+    contents,
+    config: {
+      temperature: 0.3,
+      systemInstruction: buildSystemPrompt(todayIso, user),
+      responseMimeType: "application/json",
+    },
   });
 
-  let parsed;
-  try {
-    parsed = JSON.parse(completion.choices[0]?.message?.content || "{}");
-  } catch {
-    parsed = {};
-  }
+  const parsed = parseJsonLoose(response.text || "");
 
   let updatedDraft = mergeDraft(currentDraft, parsed.draftPatch || {});
   const shouldAutofill =
